@@ -13,3 +13,17 @@ services:
         generateValue: true
       - key: CLIENT_ORIGIN
         sync: false
+
+  - type: web
+    name: taskify-frontend
+    runtime: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://taskify-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

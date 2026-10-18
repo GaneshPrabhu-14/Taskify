@@ -76,39 +76,30 @@ Exp9/
 
 The client development server proxies `/api` requests to the Express API. For a different frontend origin, update `CLIENT_ORIGIN` in `server/.env`.
 
-## Deploy (Firebase Hosting + Render)
+## Deploy both services to Render
 
-### 1. Deploy the API to Render
+The [`render.yaml`](./render.yaml) Blueprint creates two separate Render services from this repository: the Express API (`taskify-api`) and the React static site (`taskify-frontend`). React sends production API requests to `https://taskify-api.onrender.com/api`.
 
-1. Create or select a Firebase project first so you know its project ID for the API's allowed origins.
-2. Push this repository to GitHub and create a Render **Blueprint** from it. Render will use [`render.yaml`](./render.yaml) to create the API service from the `server` directory.
-3. When prompted, provide:
-   - `MONGODB_URI`: your MongoDB Atlas connection string.
-   - `CLIENT_ORIGIN`: the Firebase Hosting origin(s), comma-separated, for example `https://your-project-id.web.app,https://your-project-id.firebaseapp.com`. Add any custom domain origins here too.
-   - Render generates `JWT_SECRET` for the service. Keep it private.
-4. Configure MongoDB Atlas Network Access to allow connections from your Render service, preferably by allowlisting the service's outbound IP addresses when available.
-5. Wait for the service deploy to finish and verify `https://your-render-service.onrender.com/api/health` returns a JSON status of `ok`.
+1. Push the repository to GitHub and create a new **Blueprint** in Render, selecting this repository. Review the two services from `render.yaml` and apply the Blueprint.
+2. When prompted for the API's `MONGODB_URI`, enter your MongoDB Atlas connection string. Set `CLIENT_ORIGIN` to the frontend URL (`https://taskify-frontend.onrender.com` for the Blueprint's default name), with no trailing slash. Render generates a `JWT_SECRET`; keep it private and do not commit it.
+3. If Render assigns either service a different public hostname, update the API's `CLIENT_ORIGIN` to the frontend's exact HTTPS origin and the frontend's `VITE_API_URL` to `https://<api-service-host>/api`, then redeploy the affected service.
+4. In MongoDB Atlas **Network Access**, allow connections from the Render API. Prefer allowlisting Render's outbound IP addresses when available. Only use `0.0.0.0/0` if required by your hosting plan, and protect the database with a strong database-user password.
+5. Wait for both services to finish deploying. Verify `https://<api-service-host>/api/health` returns `{"status":"ok","service":"Taskify API"}`, then open the frontend's HTTPS URL and test registration, sign-in, and task operations.
 
-### 2. Deploy the client to Firebase Hosting
+### Render service settings
 
-1. Install and sign in to the Firebase CLI, then select the Firebase project:
+If configuring the services manually instead of using the Blueprint:
 
-   ```bash
-   npm install -g firebase-tools
-   firebase login
-   firebase use --add
-   ```
+| Setting | React frontend | Express backend |
+|---|---|---|
+| Render service type | Static Site | Web Service |
+| Root directory | `client` | `server` |
+| Build command | `npm install && npm run build` | `npm install` |
+| Publish directory / start command | `dist` | `npm start` |
+| Health check path | — | `/api/health` |
+| Environment variables | `VITE_API_URL=https://<api-service-host>/api` | `MONGODB_URI`, `JWT_SECRET`, `CLIENT_ORIGIN` |
 
-2. Copy `client/.env.production.example` to `client/.env.production` and set `VITE_API_URL` to your Render API URL, including `/api`, for example `https://your-render-service.onrender.com/api`.
-3. Build and deploy Firebase Hosting from the repository root:
-
-   ```bash
-   npm --prefix client run build
-   firebase deploy --only hosting
-   ```
-
-   [`firebase.json`](./firebase.json) publishes `client/dist` and routes client-side paths such as `/login` and `/register` to the React app.
-4. Open your Firebase Hosting URL and test registration, login, and task operations. If you add a custom domain, add its exact origin to the Render `CLIENT_ORIGIN` environment variable and redeploy the API.
+The static site's rewrite rule in `render.yaml` serves the React application for client-side routes such as `/login` and `/register`. If the Render API URL differs from the Blueprint default, change `VITE_API_URL` in the static site's environment settings and trigger a redeploy; Vite embeds this value during the frontend build. Add any custom frontend domain to the API's comma-separated `CLIENT_ORIGIN` value and redeploy the API.
 
 ## REST API
 
