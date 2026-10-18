@@ -1,4 +1,4 @@
-# Taskify — Experiment 09
+# Taskify
 
 A full-stack MERN task manager demonstrating REST API development with Express.js, API testing with Postman, and a React interface that reads and writes data through the API.
 
