@@ -76,6 +76,40 @@ Exp9/
 
 The client development server proxies `/api` requests to the Express API. For a different frontend origin, update `CLIENT_ORIGIN` in `server/.env`.
 
+## Deploy (Firebase Hosting + Render)
+
+### 1. Deploy the API to Render
+
+1. Create or select a Firebase project first so you know its project ID for the API's allowed origins.
+2. Push this repository to GitHub and create a Render **Blueprint** from it. Render will use [`render.yaml`](./render.yaml) to create the API service from the `server` directory.
+3. When prompted, provide:
+   - `MONGODB_URI`: your MongoDB Atlas connection string.
+   - `CLIENT_ORIGIN`: the Firebase Hosting origin(s), comma-separated, for example `https://your-project-id.web.app,https://your-project-id.firebaseapp.com`. Add any custom domain origins here too.
+   - Render generates `JWT_SECRET` for the service. Keep it private.
+4. Configure MongoDB Atlas Network Access to allow connections from your Render service, preferably by allowlisting the service's outbound IP addresses when available.
+5. Wait for the service deploy to finish and verify `https://your-render-service.onrender.com/api/health` returns a JSON status of `ok`.
+
+### 2. Deploy the client to Firebase Hosting
+
+1. Install and sign in to the Firebase CLI, then select the Firebase project:
+
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   firebase use --add
+   ```
+
+2. Copy `client/.env.production.example` to `client/.env.production` and set `VITE_API_URL` to your Render API URL, including `/api`, for example `https://your-render-service.onrender.com/api`.
+3. Build and deploy Firebase Hosting from the repository root:
+
+   ```bash
+   npm --prefix client run build
+   firebase deploy --only hosting
+   ```
+
+   [`firebase.json`](./firebase.json) publishes `client/dist` and routes client-side paths such as `/login` and `/register` to the React app.
+4. Open your Firebase Hosting URL and test registration, login, and task operations. If you add a custom domain, add its exact origin to the Render `CLIENT_ORIGIN` environment variable and redeploy the API.
+
 ## REST API
 
 Base URL: `http://localhost:5000/api`

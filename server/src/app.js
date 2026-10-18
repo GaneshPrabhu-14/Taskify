@@ -11,7 +11,9 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    origin: (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+      .split(",")
+      .map((origin) => origin.trim()),
   })
 );
 app.use(express.json({ limit: "20kb" }));
